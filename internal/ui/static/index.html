@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noroi Load Test Server</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d2e;
+      --border:  #2a2d3e;
+      --accent:  #6366f1;
+      --accent2: #818cf8;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --green:   #22c55e;
+      --yellow:  #eab308;
+      --red:     #ef4444;
+      --radius:  10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 24px 20px 40px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 13px;
+      font-size: 12px;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+
+    .dot.error { background: var(--red); }
+
+    /* ── Grid layout ── */
+    .grid {
+      display: grid;
+      gap: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── RPS chart card ── */
+    .chart-card {
+      padding: 20px 24px 16px;
+    }
+
+    #rpsCanvas {
+      width: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
+    /* ── Latency row ── */
+    .latency-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .latency-card {
+      text-align: center;
+      padding: 20px 16px 22px;
+    }
+
+    .latency-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .latency-value {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1;
+      transition: color 0.4s;
+    }
+
+    .latency-unit {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .col-green  { color: var(--green);  }
+    .col-yellow { color: var(--yellow); }
+    .col-red    { color: var(--red);    }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      padding: 18px 20px 20px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .stat-value.accent { color: var(--accent2); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .latency-row { grid-template-columns: 1fr; }
+      .stats-row   { grid-template-columns: 1fr; }
+      .latency-value { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">N</div>
+    <h1>Noroi Load Test Server</h1>
+  </div>
+  <div class="status-pill">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Connecting…</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- RPS Graph -->
+  <div class="card chart-card">
+    <div class="card-title">Requests per second &mdash; 60s window</div>
+    <canvas id="rpsCanvas" height="200"></canvas>
+  </div>
+
+  <!-- Latency gauges -->
+  <div class="latency-row">
+    <div class="card latency-card">
+      <div class="latency-label">Latency p50</div>
+      <div class="latency-value" id="p50">—</div>
+      <div class="latency-unit">ms</div>
+    </div>
+    <div class="card latency-card">
+      <div class="latency-label">Latency p90</div>
+      <div class="latency-value" id="p90">—</div>
+      <div class="latency-unit">ms</div>
+    </div>
+    <div class="card latency-card">
+      <div class="latency-label">Latency p99</div>
+      <div class="latency-value" id="p99">—</div>
+      <div class="latency-unit">ms</div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="card stat-card">
+      <div class="stat-label">In-Flight Requests</div>
+      <div class="stat-value accent" id="inFlight">—</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Total Requests</div>
+      <div class="stat-value" id="totalReqs">—</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Error Rate</div>
+      <div class="stat-value" id="errorRate">—</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Bytes Sent</div>
+      <div class="stat-value" id="bytesSent">—</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Constants ──────────────────────────────────────────────
+  const POLL_MS     = 1000;
+  const HISTORY_LEN = 60;
+  const ENDPOINT    = '/metrics/json';
+
+  // ── State ──────────────────────────────────────────────────
+  const rpsHistory = new Array(HISTORY_LEN).fill(null);
+  let   histHead   = 0;   // next write index (circular)
+  let   connected  = false;
+
+  // ── DOM refs ───────────────────────────────────────────────
+  const dot        = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const elP50      = document.getElementById('p50');
+  const elP90      = document.getElementById('p90');
+  const elP99      = document.getElementById('p99');
+  const elInFlight = document.getElementById('inFlight');
+  const elTotal    = document.getElementById('totalReqs');
+  const elErrRate  = document.getElementById('errorRate');
+  const elBytes    = document.getElementById('bytesSent');
+  const canvas     = document.getElementById('rpsCanvas');
+  const ctx        = canvas.getContext('2d');
+
+  // ── Helpers ────────────────────────────────────────────────
+  function formatBytes(b) {
+    if (b < 1024)              return b + ' B';
+    if (b < 1024 * 1024)      return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  function latencyClass(ms) {
+    if (ms < 100) return 'col-green';
+    if (ms < 500) return 'col-yellow';
+    return 'col-red';
+  }
+
+  function setLatency(el, ms) {
+    el.textContent = ms;
+    el.className   = 'latency-value ' + latencyClass(ms);
+  }
+
+  function setStatus(ok) {
+    connected = ok;
+    dot.className  = 'dot' + (ok ? '' : ' error');
+    statusText.textContent = ok ? 'Live' : 'Disconnected';
+  }
+
+  // ── Circular history helpers ───────────────────────────────
+  function pushRps(value) {
+    rpsHistory[histHead] = value;
+    histHead = (histHead + 1) % HISTORY_LEN;
+  }
+
+  /** Returns history in chronological order (oldest → newest). */
+  function orderedHistory() {
+    return [
+      ...rpsHistory.slice(histHead),
+      ...rpsHistory.slice(0, histHead),
+    ];
+  }
+
+  // ── Canvas drawing ─────────────────────────────────────────
+  const PAD = { top: 12, right: 16, bottom: 36, left: 52 };
+  const GRID_LINES = 4;
+
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const w   = canvas.parentElement.clientWidth;
+    const h   = 200;
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    return { w, h };
+  }
+
+  function drawChart() {
+    const { w, h } = resizeCanvas();
+    const data = orderedHistory();
+
+    // Determine y-range
+    const vals    = data.filter(v => v !== null);
+    const maxVal  = vals.length ? Math.max(...vals) : 10;
+    const yMax    = Math.ceil(maxVal * 1.15) || 10;
+
+    const plotW = w - PAD.left - PAD.right;
+    const plotH = h - PAD.top  - PAD.bottom;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Grid lines + Y labels
+    ctx.strokeStyle = '#2a2d3e';
+    ctx.lineWidth   = 1;
+    ctx.fillStyle   = '#64748b';
+    ctx.font        = '11px system-ui, sans-serif';
+    ctx.textAlign   = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i <= GRID_LINES; i++) {
+      const frac = i / GRID_LINES;
+      const y    = PAD.top + plotH * (1 - frac);
+      const label = Math.round(yMax * frac);
+
+      ctx.beginPath();
+      ctx.moveTo(PAD.left, y);
+      ctx.lineTo(PAD.left + plotW, y);
+      ctx.stroke();
+
+      ctx.fillText(label, PAD.left - 6, y);
+    }
+
+    // X axis labels (seconds ago)
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    const xSteps = [0, 15, 30, 45, 59];
+    for (const s of xSteps) {
+      const x = PAD.left + (s / (HISTORY_LEN - 1)) * plotW;
+      const label = s === 0 ? '−60s' : s === 59 ? 'now' : '−' + (59 - s) + 's';
+      ctx.fillText(label, x, PAD.top + plotH + 8);
+    }
+
+    // Build point list (only where data is non-null)
+    const points = [];
+    for (let i = 0; i < HISTORY_LEN; i++) {
+      if (data[i] === null) continue;
+      const x = PAD.left + (i / (HISTORY_LEN - 1)) * plotW;
+      const y = PAD.top  + plotH * (1 - data[i] / yMax);
+      points.push({ x, y });
+    }
+
+    if (points.length < 2) return;
+
+    // Filled area
+    const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + plotH);
+    grad.addColorStop(0,   'rgba(99,102,241,0.35)');
+    grad.addColorStop(1,   'rgba(99,102,241,0.01)');
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, PAD.top + plotH);
+    ctx.lineTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.lineTo(points[points.length - 1].x, PAD.top + plotH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth   = 2.5;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+
+    // Latest value label
+    const last = points[points.length - 1];
+    ctx.fillStyle = '#818cf8';
+    ctx.font      = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(data[HISTORY_LEN - 1].toFixed(1) + ' rps', last.x + 6, last.y + 2);
+  }
+
+  // ── Polling ────────────────────────────────────────────────
+  async function poll() {
+    try {
+      const resp = await fetch(ENDPOINT, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const d = await resp.json();
+
+      // RPS history
+      pushRps(d.rps_1m);
+
+      // Latency gauges
+      setLatency(elP50, d.latency_p50_ms);
+      setLatency(elP90, d.latency_p90_ms);
+      setLatency(elP99, d.latency_p99_ms);
+
+      // Stats
+      elInFlight.textContent = d.in_flight.toLocaleString();
+      elTotal.textContent    = d.requests_total.toLocaleString();
+
+      const errRate = d.requests_total > 0
+        ? (d.errors_total / d.requests_total * 100).toFixed(1) + '%'
+        : '0.0%';
+      elErrRate.textContent = errRate;
+      elBytes.textContent   = formatBytes(d.bytes_sent_total);
+
+      setStatus(true);
+    } catch (e) {
+      setStatus(false);
+    }
+
+    drawChart();
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  window.addEventListener('resize', drawChart);
+  drawChart();           // draw empty chart on load
+  poll();                // first fetch immediately
+  setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>

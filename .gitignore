@@ -1,0 +1,29 @@
+# IDEs
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+
+# Build output
+noroi
+dist/
+
+# Environment variables
+.env
+.env.local
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# Test coverage & profiling
+*.out
+*.prof
+*.test
+coverage.txt
+
+# Temporary files
+*.tmp
+tmp/
