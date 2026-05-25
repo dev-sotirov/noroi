@@ -13,6 +13,10 @@ dist/
 .env
 .env.local
 
+# Python cache and virtual environment
+__pycache__/
+.venv
+
 # Editor swap files
 *.swp
 *.swo

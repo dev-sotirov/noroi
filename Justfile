@@ -6,11 +6,15 @@ default:
 
 # Build the binary
 build:
-    go build -o noroi ./cmd/server
+    go build -o dist/noroi ./cmd/server
 
 # Build stripped binary
 build-prod:
-    CGO_ENABLED=0 go build -ldflags="-s -w" -o noroi ./cmd/server
+    CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/noroi ./cmd/server
+
+# Run the app locally
+run:
+    go run ./cmd/server/main.go
 
 # Run all tests
 test:
