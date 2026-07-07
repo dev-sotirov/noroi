@@ -44,7 +44,6 @@ func init() {
 	textBlock = buf
 }
 
-
 // ParseSize parses a human-readable size string and returns the number of
 // bytes it represents.
 //
@@ -98,7 +97,6 @@ func ParseSize(s string) (int64, error) {
 	}
 	return result, nil
 }
-
 
 // Generator produces response bodies.  It is stateless; all shared state lives
 // in package-level variables.  A zero value is ready to use; prefer New().
@@ -168,7 +166,7 @@ func generateZeros(size int64) []byte {
 func generateBinary(size int64) []byte {
 	out := make([]byte, size)
 	rng := rand.New(rand.NewSource(rand.Int63())) //nolint:gosec
-	rng.Read(out)                                  //nolint:errcheck // rand.Rand.Read never returns an error
+	rng.Read(out)                                 //nolint:errcheck // rand.Rand.Read never returns an error
 	return out
 }
 

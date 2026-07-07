@@ -10,8 +10,8 @@ import (
 
 // Parameter bounds for /respond endpoint (production safety).
 const (
-	MaxCPUMs      = 10_000      // 10 seconds max CPU burn
-	MaxChunks     = 100_000     // 100k max chunks per request
+	MaxCPUMs      = 10_000  // 10 seconds max CPU burn
+	MaxChunks     = 100_000 // 100k max chunks per request
 	MaxDelay      = 1 * time.Hour
 	MaxChunkDelay = 1 * time.Hour
 )
@@ -30,8 +30,8 @@ type DefaultsConfig struct {
 	Delay      time.Duration `mapstructure:"delay"`
 	Jitter     time.Duration `mapstructure:"jitter"`
 	StatusCode int           `mapstructure:"status_code"`
-	BodySize   int           `mapstructure:"body_size"` // bytes
-	BodyType   string        `mapstructure:"body_type"` // text | json | binary | zeros
+	BodySize   int           `mapstructure:"body_size"`  // bytes
+	BodyType   string        `mapstructure:"body_type"`  // text | json | binary | zeros
 	ErrorRate  float64       `mapstructure:"error_rate"` // 0.0 – 1.0
 }
 
