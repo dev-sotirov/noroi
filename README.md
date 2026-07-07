@@ -1,6 +1,6 @@
 # Noroi (呪い)
 
-> *Slow and cursed by design.*
+> _Slow and cursed by design._
 
 A configurable HTTP backend for load and performance testing. Point your load testing tool at it and control exactly how it behaves — latency, body size, error rate, and more — all via query parameters.
 
@@ -43,35 +43,35 @@ curl "http://localhost:8080/respond?cpu_ms=100"
 
 ### Parameters
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `delay` | duration | `0ms` | Fixed response delay |
-| `delay_min` / `delay_max` | duration | — | Random delay range |
-| `jitter` | duration | `0ms` | ± random jitter on top of delay |
-| `status` | int | `200` | HTTP status code to return |
-| `size` | string | `256` | Response body size (`256`, `10kb`, `1mb`) |
-| `body_type` | string | `text` | Body content: `text`, `json`, `binary`, `zeros` |
-| `error_rate` | float | `0.0` | Fraction of requests that return 500 (e.g. `0.1`) |
-| `cpu_ms` | int | `0` | Milliseconds of CPU work before responding |
-| `chunked` | bool | `false` | Send as chunked transfer encoding |
-| `chunk_delay` | duration | `0ms` | Delay between chunks |
-| `compress` | bool | `false` | Gzip compress the response |
+| Parameter                 | Type     | Default | Description                                       |
+| ------------------------- | -------- | ------- | ------------------------------------------------- |
+| `delay`                   | duration | `0ms`   | Fixed response delay                              |
+| `delay_min` / `delay_max` | duration | —       | Random delay range                                |
+| `jitter`                  | duration | `0ms`   | ± random jitter on top of delay                   |
+| `status`                  | int      | `200`   | HTTP status code to return                        |
+| `size`                    | string   | `256`   | Response body size (`256`, `10kb`, `1mb`)         |
+| `body_type`               | string   | `text`  | Body content: `text`, `json`, `binary`, `zeros`   |
+| `error_rate`              | float    | `0.0`   | Fraction of requests that return 500 (e.g. `0.1`) |
+| `cpu_ms`                  | int      | `0`     | Milliseconds of CPU work before responding        |
+| `chunked`                 | bool     | `false` | Send as chunked transfer encoding                 |
+| `chunk_delay`             | duration | `0ms`   | Delay between chunks                              |
+| `compress`                | bool     | `false` | Gzip compress the response                        |
 
 ---
 
 ## Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET/POST` | `/respond` | Main configurable endpoint |
-| `GET/POST` | `/echo` | Returns request info as JSON |
-| `GET` | `/stream` | Chunked streaming response |
-| `POST` | `/scenario` | Save a named scenario |
-| `GET` | `/scenario/:id` | Replay a saved scenario |
-| `GET` | `/metrics` | Prometheus metrics |
-| `GET` | `/metrics/json` | Metrics snapshot as JSON |
-| `GET` | `/health` | Always 200 OK |
-| `GET` | `/ui` | Live dashboard |
+| Method     | Path            | Description                  |
+| ---------- | --------------- | ---------------------------- |
+| `GET/POST` | `/respond`      | Main configurable endpoint   |
+| `GET/POST` | `/echo`         | Returns request info as JSON |
+| `GET`      | `/stream`       | Chunked streaming response   |
+| `POST`     | `/scenario`     | Save a named scenario        |
+| `GET`      | `/scenario/:id` | Replay a saved scenario      |
+| `GET`      | `/metrics`      | Prometheus metrics           |
+| `GET`      | `/metrics/json` | Metrics snapshot as JSON     |
+| `GET`      | `/health`       | Always 200 OK                |
+| `GET`      | `/ui`           | Live dashboard               |
 
 ---
 
@@ -115,17 +115,17 @@ metrics:
 
 Noroi exposes Prometheus metrics at `/metrics`:
 
-| Metric | Type |
-|---|---|
-| `noroi_requests_total` | Counter |
+| Metric                           | Type      |
+| -------------------------------- | --------- |
+| `noroi_requests_total`           | Counter   |
 | `noroi_request_duration_seconds` | Histogram |
-| `noroi_simulated_delay_seconds` | Histogram |
-| `noroi_response_bytes_total` | Counter |
-| `noroi_in_flight_requests` | Gauge |
-| `noroi_errors_total` | Counter |
+| `noroi_simulated_delay_seconds`  | Histogram |
+| `noroi_response_bytes_total`     | Counter   |
+| `noroi_in_flight_requests`       | Gauge     |
+| `noroi_errors_total`             | Counter   |
 
 ---
 
 ## License
 
-MIT
+[GNU GPL v3](LICENSE)
