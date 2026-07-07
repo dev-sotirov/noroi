@@ -1,0 +1,169 @@
+name: Publish Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions: {}
+
+env:
+  APP_NAME: noroi
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  VERSION: ${{ github.event.release.tag_name }}
+
+jobs:
+  verify:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Verify tag is on release branch
+        run: |
+          git fetch --no-tags origin release:refs/remotes/origin/release
+          tagged_commit="$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "${tagged_commit}" origin/release
+
+  build-binaries:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            archive: tar.gz
+          - goos: darwin
+            goarch: amd64
+            archive: tar.gz
+          - goos: darwin
+            goarch: arm64
+            archive: tar.gz
+          - goos: windows
+            goarch: amd64
+            archive: zip
+          - goos: windows
+            goarch: arm64
+            archive: zip
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build and package
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          package_name="${APP_NAME}_${VERSION}_${GOOS}_${GOARCH}"
+          binary_name="${APP_NAME}"
+          if [[ "${GOOS}" == "windows" ]]; then
+            binary_name="${binary_name}.exe"
+          fi
+
+          mkdir -p "dist/${package_name}"
+          go build -trimpath -ldflags="-s -w" -o "dist/${package_name}/${binary_name}" ./cmd/server
+
+          if [[ "${{ matrix.archive }}" == "zip" ]]; then
+            (
+              cd "dist/${package_name}"
+              zip "../${package_name}.zip" "${binary_name}"
+            )
+          else
+            tar -C dist -czf "dist/${package_name}.tar.gz" "${package_name}"
+          fi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.${{ matrix.archive }}
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-assets:
+    name: Publish release assets
+    needs:
+      - verify
+      - build-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download binary artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ env.APP_NAME }}-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: dist
+        run: sha256sum ./*.tar.gz ./*.zip > SHA256SUMS
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${VERSION}" dist/* --repo "${GITHUB_REPOSITORY}" --clobber
+
+  publish-image:
+    name: Publish container image
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.event.release.tag_name }}
