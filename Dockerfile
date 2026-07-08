@@ -4,7 +4,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o noroi ./cmd/server
+
+ARG VERSION=development
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${VERSION}" -o noroi ./cmd/server
 
 # Final stage
 FROM scratch
