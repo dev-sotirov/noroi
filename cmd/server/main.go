@@ -25,6 +25,8 @@ import (
 	"github.com/dev-sotirov/noroi/internal/ui"
 )
 
+var Version = "development"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "noroi: %v\n", err)
@@ -37,6 +39,7 @@ func run() error {
 	// CLI flags
 	// -------------------------------------------------------------------------
 	var (
+		flagVersion   = flag.Bool("version", false, "Print version information and quit")
 		flagConfig    = flag.String("config", ".noroi.yaml", "Path to .noroi.yaml config file")
 		flagPort      = flag.Int("port", 0, "HTTP port (0 = use config)")
 		flagDelay     = flag.String("delay", "", "Default response delay (e.g. 100ms)")
@@ -44,6 +47,11 @@ func run() error {
 		flagLogLevel  = flag.String("log-level", "", "Log level: debug|info|warn|error")
 	)
 	flag.Parse()
+
+	if *flagVersion {
+		fmt.Printf("noroi version %s\n", Version)
+		os.Exit(0)
+	}
 
 	// -------------------------------------------------------------------------
 	// Config
