@@ -3,7 +3,6 @@
 > *Slow and cursed by design.*
 
 [![CI](https://github.com/dev-sotirov/noroi/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-sotirov/noroi/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/dev-sotirov/noroi.svg)](https://pkg.go.dev/github.com/dev-sotirov/noroi)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 A configurable HTTP backend for load and performance testing. Point your load testing tool at it and control exactly how it behaves — latency, body size, error rate, and more — all via query parameters.
